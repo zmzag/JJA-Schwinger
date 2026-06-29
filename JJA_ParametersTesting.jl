@@ -19,43 +19,19 @@ end
 # ╔═╡ af6fc96a-e4d3-4c57-87ed-657fb004710b
 using Pluto,PlutoUI
 
-# ╔═╡ 90f81d8c-b764-47aa-b970-56690d025111
+# ╔═╡ efe49bc0-fe17-474c-a64f-2ecb15267656
 using Plots
 
-# ╔═╡ e3c2b3ec-40e5-470c-9661-46b00ab0c878
-#Set electron charge based on unit system youre using atm
-e = 1.0
+# ╔═╡ 565cc6ce-db0a-4c07-9914-f757bab5b955
+gr()
 
-# ╔═╡ 64b2b9d5-4a42-43c6-a177-4d85bd9ac36d
-#Computes intermediate variable ω_-
-function ω_fn(c_t, c_l)
-	return 1 + c_t/(2*c_l) - c_t/(2*c_l)*sqrt(1 + 4*c_l/c_t)
-end
+# ╔═╡ b8549d64-ebcb-4ae9-a01e-fe8d55e8701f
+md"""
+The variables $K$, $\kappa$, and $g$ are required to simulate a specific instance of the continuum model ($K=4$ => Schwinger model, $\kappa$ => fermion mass, $g$ => boson mass).  Here we set $K = 4$ - which is unitless.  $g$ and $\kappa$ are set by sliders.  A good analog simulation should be able to simulate both $\kappa \ll g$ - which we can access perturbatively and use to benchmark the simulator, and $\kappa \sim g$ - which is the region inaccessible by analytics.
+"""
 
-# ╔═╡ c012858a-2ac3-4ded-a5b9-9c483ab192ac
-#Computes energy of series JJ
-function e_l_fn(c_t, c_l, K)
-	ω = ω_fn(c_t, c_l)
-	num = 8*e^2
-	denom = K^2*π^2*abs(log(ω))*sqrt(c_t*(4*c_l + c_t))
-	return num/denom
-end
-
-# ╔═╡ 112507eb-c959-4f78-a6e9-485b38e7f485
-#Computes energy of parallel JJ
-function e_t_fn(a, κ)
-	return κ*a/2
-end
-
-# ╔═╡ c9040147-1b11-4807-a2f9-4298ae2b3c95
-#The variables K, κ, and g are required to simulate a specific instance of the continuum model (K=4 => Schwinger model, κ => fermion mass, g => boson mass)
-K = 4.0
-
-# ╔═╡ 98a17de8-66f2-42e5-92ae-ea4261d40f37
-#Computes inductance of parallel inductor
-function l_t_fn(a, g)
-	return K*π/(g^2*a)
-end
+# ╔═╡ 57414233-2fad-43dd-964f-3f8b44226ecb
+K = 4.0 #unitless
 
 # ╔═╡ b541cc58-7c33-42d4-96d6-b2869753d1d9
 @bind κ Slider(0.1:0.05:5.0, default=0.2, show_value=true)
@@ -63,32 +39,96 @@ end
 # ╔═╡ 248da3b1-8b1b-421f-b479-10c663a04e13
 @bind g Slider(0.1:0.05:5.0, default=1.5, show_value=true)
 
+# ╔═╡ df6641bf-78a0-4adf-8e26-d53507259c43
+md"""
+Throughout this code we take $g$, $\kappa$ in natural units of GHz and GHz$^2$, respectively.  Energies are actually $E/h$ in units of GHz.  Capacitances are actually $\frac{h}{2e^2} C$ in units of 1/GHz.
+"""
+
+# ╔═╡ 84ec4f6a-6e92-4b9f-a7ff-a113edb4405e
+md"""
+$\omega(C_t, C_l) = 1 + \frac{C_t}{2C_l} - \frac{C_t}{2C_l}\sqrt{1 + \frac{4C_l}{C_t}}$ is an intermediate variable and is unitless.
+"""
+
+# ╔═╡ 64b2b9d5-4a42-43c6-a177-4d85bd9ac36d
+function ω_fn(c_t, c_l)
+	return 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t)
+end
+
+# ╔═╡ 822ebcda-fe80-4fcf-b680-e72a342a51ca
+md"""
+$E_l = \frac{4}{K^2 \pi^2 |\ln \omega| \sqrt{C_t(4C_L + C_t)}}$ is the energy of the series JJ.  It is in units of GHz.
+"""
+
+# ╔═╡ c012858a-2ac3-4ded-a5b9-9c483ab192ac
+function e_l_fn(c_t, c_l, K)
+	ω = ω_fn(c_t, c_l)
+	num = 4
+	denom = K^2*π^2*abs(log(ω))*sqrt(c_t*(4*c_l + c_t))
+	return num/denom
+end
+
+# ╔═╡ e0d93dbb-6819-4814-bd5f-9d6436a7d02f
+md"""
+$L_t = \frac{4*\pi^4*K^2*E_l}{g^2}$ is the inductance of the parallel inductor in units of 1/GHz.
+"""
+
+# ╔═╡ 98a17de8-66f2-42e5-92ae-ea4261d40f37
+function l_t_fn(e_l, g, K)
+	num = 4*π^4*K^2*e_l
+	denom = g^2
+	return num/denom
+end
+
+# ╔═╡ f0a4b8a6-02e3-4786-9cce-1c70e0d2f382
+md"""
+$E_t = \frac{\kappa}{8*\pi^3*K*E_l}$ is the energy of the parallel JJ in units of GHz.
+"""
+
+# ╔═╡ 112507eb-c959-4f78-a6e9-485b38e7f485
+function e_t_fn(e_l, κ, K)
+	num = κ
+	denom = 8*π^3*K*e_l 
+	return num/denom 
+end
+
+# ╔═╡ aac014df-1506-4a0c-99f3-b6b39a7247c5
+md"""
+From https://arxiv.org/pdf/2603.06371, the equivalent to $(h/2e^2)*C_l$ is 1/(30 GHz) ~ 0.03 1/GHz and the eqivalent to $(h/2e^2)*C_l$ is 1/(500 GHz) ~ 0.002 1/GHz.  Therefore we let the ranges of these values go from 0.001 to 0.1 (1/GHz).
+"""
+
 # ╔═╡ 0cdffd0c-7f01-4708-8f57-e9991e61cdb4
-#Generates heatmap of possible E_l values for different C_l, C_t which still give the proper K=4.0
+#Generates heatmap of possible E_l values for different C_l, C_t at a given K
 let
-    c_t_vals = range(0.1, 1.0, length=10)
-    c_l_vals = range(0.1, 1.0, length=10)
-    e_l_grid = [e_l_fn(c_t, c_l, K) for c_l in c_l_vals, c_t in c_t_vals]
+    c_t_vals = range(0.001, 0.005, length=1000)
+    c_l_vals = range(0.01, 0.05, length=1000)
+    e_l_grid = [e_l_fn(c_t, c_l, K) for c_t in c_t_vals, c_l in c_l_vals]
     heatmap(c_t_vals, c_l_vals, e_l_grid, xlabel = "C_t",  ylabel = "C_l", title  = "E_l(C_t, C_l) for K=$K")
 end
 
+# ╔═╡ 6be4f3a2-94a9-48ec-b85d-6bf8d5d047d1
+md"""
+Those choices for the capacitances seem to put $E_l$ in the range of ~5 GHz so we look around that at what $L_t$ should be in order to give the chosen $g$.
+"""
+
 # ╔═╡ 4472e33c-b08b-4b6d-98f1-d10b2ae21da7
-#Generates a plot of L_t as a function of the lattice spacing a in order to satisfy the choice of g above
+#Generates a plot of L_t as a function of E_l which gives the correct g and at a given K
 let
-	a_vals = range(0.05, 5.0, length=100)
-	l_t_grid = [l_t_fn(a, g) for a in a_vals]
-	plot(a_vals, l_t_grid, xlabel = "a", ylabel = "L_t", title = "L_t(a) for g=$g")
+	e_l_vals = range(1.0, 10.0, length=100)
+	l_t_grid = [l_t_fn(e_l, g, K) for e_l in e_l_vals]
+	plot(e_l_vals, l_t_grid, xlabel = "E_l", ylabel = "L_t", title = "L_t(E_l) for g=$g, K=$K")
 end
 
 # ╔═╡ bd5b2dd1-17eb-40ed-8ef1-9b96a9eecd6f
-#Generates a plot of E_t as a function of the lattice spacing in order to satisfy the choice of κ above
+#Generates a plot of E_t as a function of E_l which gives the correct κ and at a given K
 let
-	a_vals = range(0.05, 5.0, length=100)
-	e_t_grid = [e_t_fn(a, κ) for a in a_vals]
-	plot(a_vals, e_t_grid, xlabel = "a", ylabel = "E_t", title = "E_t(a) for κ=$κ")
+	e_l_vals = range(1.0, 10.0, length=100)
+	e_t_grid = [e_t_fn(e_l, κ, K) for e_l in e_l_vals]
+	plot(e_l_vals, e_t_grid, xlabel = "E_l", ylabel = "E_t", title = "E_t(E_l) for κ=$κ, K=$K")
 end
 
 # ╔═╡ 7d8b28b4-d133-42bf-a420-bb19b6e214d1
+# ╠═╡ disabled = true
+#=╠═╡
 #The phase slip rate is ~e^{-E_J/E_C}.  This shows E_J/E_C = E_l C_l /2e^2 for the series JJs.  To have minimal phase slips we want this value to be around 10-20
 let
     c_t_vals = range(0.1, 1.0, length=10)
@@ -96,8 +136,11 @@ let
     series_psl_grid = [e_l_fn(c_t, c_l, K)*c_l/(2*e^2) for c_l in c_l_vals, c_t in c_t_vals]
     heatmap(c_t_vals, c_l_vals, series_psl_grid, xlabel = "C_t",  ylabel = "C_l", title  = "Series PSR(C_t, C_l) for K=$K")
 end
+  ╠═╡ =#
 
 # ╔═╡ bcc68721-83f4-42a7-a0f6-2e658905f851
+# ╠═╡ disabled = true
+#=╠═╡
 #This shows E_J/E_C = E_t C_t /2e^2 for the parallel JJs.  To have minimal phase slips we want this value to be around 10-20
 let
 	c_t_vals = range(0.1, 50.0, length = 500)
@@ -105,6 +148,7 @@ let
 	parallel_psl_grid = [e_t_fn(a,κ)*c_t/(2e^2) for a in a_vals, c_t in c_t_vals]
 	heatmap(c_t_vals, a_vals, parallel_psl_grid, xlabel = "C_t", ylabel = "a", title = "Parallel PSR(C_t, a) for κ=$κ")
 end
+  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1388,16 +1432,24 @@ version = "1.13.0+0"
 
 # ╔═╡ Cell order:
 # ╠═af6fc96a-e4d3-4c57-87ed-657fb004710b
-# ╠═90f81d8c-b764-47aa-b970-56690d025111
-# ╠═e3c2b3ec-40e5-470c-9661-46b00ab0c878
-# ╠═64b2b9d5-4a42-43c6-a177-4d85bd9ac36d
-# ╠═c012858a-2ac3-4ded-a5b9-9c483ab192ac
-# ╠═98a17de8-66f2-42e5-92ae-ea4261d40f37
-# ╠═112507eb-c959-4f78-a6e9-485b38e7f485
-# ╠═c9040147-1b11-4807-a2f9-4298ae2b3c95
+# ╠═efe49bc0-fe17-474c-a64f-2ecb15267656
+# ╠═565cc6ce-db0a-4c07-9914-f757bab5b955
+# ╠═b8549d64-ebcb-4ae9-a01e-fe8d55e8701f
+# ╠═57414233-2fad-43dd-964f-3f8b44226ecb
 # ╠═b541cc58-7c33-42d4-96d6-b2869753d1d9
 # ╠═248da3b1-8b1b-421f-b479-10c663a04e13
+# ╠═df6641bf-78a0-4adf-8e26-d53507259c43
+# ╠═84ec4f6a-6e92-4b9f-a7ff-a113edb4405e
+# ╠═64b2b9d5-4a42-43c6-a177-4d85bd9ac36d
+# ╠═822ebcda-fe80-4fcf-b680-e72a342a51ca
+# ╠═c012858a-2ac3-4ded-a5b9-9c483ab192ac
+# ╠═e0d93dbb-6819-4814-bd5f-9d6436a7d02f
+# ╠═98a17de8-66f2-42e5-92ae-ea4261d40f37
+# ╠═f0a4b8a6-02e3-4786-9cce-1c70e0d2f382
+# ╠═112507eb-c959-4f78-a6e9-485b38e7f485
+# ╠═aac014df-1506-4a0c-99f3-b6b39a7247c5
 # ╠═0cdffd0c-7f01-4708-8f57-e9991e61cdb4
+# ╠═6be4f3a2-94a9-48ec-b85d-6bf8d5d047d1
 # ╠═4472e33c-b08b-4b6d-98f1-d10b2ae21da7
 # ╠═bd5b2dd1-17eb-40ed-8ef1-9b96a9eecd6f
 # ╠═7d8b28b4-d133-42bf-a420-bb19b6e214d1
