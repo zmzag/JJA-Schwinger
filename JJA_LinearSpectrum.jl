@@ -9,22 +9,14 @@ L = 200
 dx = 0.1
 N = Int(L/dx + 1)
 
-#Physical Variables
-g = 1.5 #the value of g in the continuum model that you want to model in this lattice system
-κ = 0.2 #the value of κ in the continuum model that you want to model in this lattice system
-K = 4.0 #Luttinger parameter - CANT CHANGE FROM 4.0 IF YOU WISH TO SIMULATE SCHWINGER MODEL
+#Physical system variables - import these from JJA_ParametersTesting.jl
+c_t = 0; #capacitance of parallel JJs = (h/(2e^2))C in units of 1/GHz
+c_l = 0; #capacitance of series JJs = (h/(2e^2))C in units of 1/GHz
+E_t = 0; #energy of parallel JJs = E/h in units of GHz
+L_t = 0; #inductance of parallel inductor = hL in units of 1/GHz
+E_l = 0; #energy of series JJs = E/h in units of GHz
 
-e = 1.0; #physical lattice model electron charge
-c_t = 0.001; #capacitance of parallel JJs
-c_l = 0.0001; #capacitance of series JJs
-
-#Assuming c_l >> c_t, the lattice system paramters must be determined as follows to accurately depict the continuum Schwinger model
-E_t = κ*dx/2;
-L_t = π*K/(dx*g^2);
-ω = 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t);
-E_l = 8*e^2/(K^2*π^2*abs(log(ω))*sqrt(c_t*(4c_l + c_t)));
-
-println(E_l)
+ω = 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t); #intermediate variabel, unitless
 
 #Finds the steady state soliton
 function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ::Function = x -> (x ≥ 0 ? 1.0 : 0.0), tol::Real = 1e-9, maxiter::Integer = 30, verbose::Bool = true)
@@ -44,8 +36,8 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
     function residual!(F, φ)
         F[1] = φ[1] - φ_left
         F[N] = φ[N] - φ_right
-        @inbounds for i in 2:N-1 #skips check that array element is a valid one to speed up loop
-            laplacian  = (φ[i+1] - 2φ[i] + φ[i-1])/dx^2
+        @inbounds for i in 2:(N - 1) #skips check that array element is a valid one to speed up loop
+            laplacian  = (φ[i + 1] - 2*φ[i] + φ[i - 1])/dx^2
             F[i] = laplacian - k*sin(φ[i]) - g0*φ[i] - 2*π*g0*src[i]
         end
         return F
@@ -62,7 +54,7 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
         @inbounds for i in 2:N-1
             d[i] = -2.0 / dx^2 - k * cos(φ[i]) - g0
             dl[i-1] = 1.0 / dx^2
-            du[i] = 1.0 / dx^2
+            du[i-1] = 1.0 / dx^2
         end
         return Tridiagonal(dl, d, du)
     end
@@ -77,7 +69,7 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
             return xrange, φ
         end
         J = jacobian!(dl, d, du, φ)
-        Δφ = J \ (-F) #left division, computes -F = Δϕ J
+        Δφ = J\(-F) #left division, computes -F = Δϕ J
         φ .+= Δφ
     end
     
@@ -100,7 +92,7 @@ cosTerm = Diagonal(cos.(ϕ_ss))
 massTerm = I
 
 mat1 = Matrix(-E_l*laplacian + E_t*cosTerm + (1/L_t)*massTerm)
-mat2 = (1/(4*e^2))*Matrix(capMatrix)
+mat2 = (1/(8*π^2))*Matrix(capMatrix)
 
 vals, vecs = eigen(mat1, mat2)
 display(plot(sqrt.(vals[1:30]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω", title = "Low energy spectrum of JJA"))
