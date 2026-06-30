@@ -10,11 +10,11 @@ dx = 0.1
 N = Int(L/dx + 1)
 
 #Physical system variables - import these from JJA_ParametersTesting.jl
-c_t = 0; #capacitance of parallel JJs = (h/(2e^2))C in units of 1/GHz
-c_l = 0; #capacitance of series JJs = (h/(2e^2))C in units of 1/GHz
-E_t = 0; #energy of parallel JJs = E/h in units of GHz
-L_t = 0; #inductance of parallel inductor = hL in units of 1/GHz
-E_l = 0; #energy of series JJs = E/h in units of GHz
+c_t = 0.003; #capacitance of parallel JJs = (h/(2e^2))C in units of 1/GHz
+c_l = 0.03; #capacitance of series JJs = (h/(2e^2))C in units of 1/GHz
+E_t = 0.0003; #energy of parallel JJs = E/h in units of GHz
+L_t = 14000; #inductance of parallel inductor = hL in units of 1/GHz
+E_l = 5.0; #energy of series JJs = E/h in units of GHz
 
 ω = 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t); #intermediate variabel, unitless
 
@@ -37,7 +37,7 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
         F[1] = φ[1] - φ_left
         F[N] = φ[N] - φ_right
         @inbounds for i in 2:(N - 1) #skips check that array element is a valid one to speed up loop
-            laplacian  = (φ[i + 1] - 2*φ[i] + φ[i - 1])/dx^2
+            laplacian  = (φ[i + 1] - 2*φ[i] + φ[i - 1])
             F[i] = laplacian - k*sin(φ[i]) - g0*φ[i] - 2*π*g0*src[i]
         end
         return F
@@ -52,9 +52,9 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
         d[1] = 1.0
         d[N] = 1.0
         @inbounds for i in 2:N-1
-            d[i] = -2.0 / dx^2 - k * cos(φ[i]) - g0
-            dl[i-1] = 1.0 / dx^2
-            du[i-1] = 1.0 / dx^2
+            d[i] = -2.0 - k * cos(φ[i]) - g0
+            dl[i-1] = 1.0 
+            du[i-1] = 1.0 
         end
         return Tridiagonal(dl, d, du)
     end

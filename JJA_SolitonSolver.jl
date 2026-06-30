@@ -8,9 +8,9 @@ dx = 0.05
 num = 2001
 
 g = 1.5
-κ = 1.0
+κ = 0.2
 
-function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ::Function = x -> (x ≥ 0 ? 1.0 : 0.0), tol::Real = 1e-9, maxiter::Integer = 30, verbose::Bool = true)
+function solve_soliton(L::Real, N::Integer; Θ::Function = x -> (x ≥ 0 ? 1.0 : 0.0), tol::Real = 1e-9, maxiter::Integer = 30, verbose::Bool = true)
     
     xrange = range(-L/2, L/2; length=N)
     dx = step(xrange)
@@ -44,7 +44,7 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
             #d[i] = -2.0/dx^2 - k * cos(φ[i]) - g0
             d[i] = -2.0/dx^2 - 2*sqrt(π)*k*cos(2*sqrt(π)*φ[i]) - g0 #TESTING AGAINST WENTAO'S CODE - DELETE LATER
             dl[i-1] = 1.0/dx^2
-            du[i] = 1.0/dx^2
+            du[i-1] = 1.0/dx^2
         end
         return Tridiagonal(dl, d, du)
     end
@@ -67,9 +67,10 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
     return xrange, φ
 end
  
-x, ϕ = solve_soliton(E_t, E_l, L_t, L, num)
+x, ϕ = solve_soliton(L, num)
 plt = plot(x,ϕ)
 
+#=
 function deriv(x, f)
     h = x[2] - x[1]
     df = similar(f)
@@ -78,7 +79,9 @@ function deriv(x, f)
     df[2:end-1] = (f[3:end] .- f[1:end - 2])./(2*h)
     return df
 end
+=#
 
+#=
 function fwhm(x, f)
     abs_f = abs.(f)
     half_max = maximum(abs_f)/2
@@ -113,10 +116,11 @@ vline!([-fullwidth/2])
 vline!([fullwidth/2])
 
 println(fullwidth)
+=#
 
-#df = CSV.read("/Users/zoe/Documents/AnalogSimProject/Atom Steady States/SS_L200_dx0p1_g1p5_k0p2.csv", DataFrame, header=false)
-#phi_ss_original = df[:, 1]
+df = CSV.read("/Users/zoe/Documents/AnalogSimProject/Atom Steady States/SS_L200_dx0p1_g1p5_k0p2.csv", DataFrame, header=false)
+phi_ss_original = df[:, 1]
 #phi_ss = phi_ss_original[5001:5:15001] #making L and dx smaller than imported
-#N = length(phi_ss)
-#xnew = range(x0, step=dx, length=N) 
-#display(plot!(plt, xnew,phi_ss, ls=:dash))
+N = length(phi_ss_original)
+xnew = range(-100, step=0.01, length=N) 
+display(plot!(plt, xnew,phi_ss_original, ls=:dash))
