@@ -19,7 +19,7 @@ E_l = 5.0; #energy of series JJs = E/h in units of GHz
 ω = 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t); #intermediate variabel, unitless
 
 #Finds the steady state soliton
-function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ::Function = x -> (x ≥ 0 ? 1.0 : 0.0), tol::Real = 1e-9, maxiter::Integer = 30, verbose::Bool = true)
+function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ::Function = x -> (x ≥ 0 ? 1.0 : 0.0), tol::Real = 1e-9, maxiter::Integer = 50, verbose::Bool = true)
     
     xrange = range(-L/2, L/2; length=N)
     dx = step(xrange)
@@ -86,7 +86,7 @@ x, ϕ_ss = solve_soliton(E_t, E_l, L_t, L, N)
 #Generating hamiltonian
 capMatrix = spdiagm(0 => fill((c_t + 2*c_l), N), -1 => fill(-c_l, N-1), 1 => fill(-c_l, N-1))
 #display(heatmap(capMatrix, yflip = true, title = "Capacitance matrix"))
-#display(heatmap(inv(Matrix(capMatrix)), yflip = true, title = "Inverse capacitance matrix"))
+display(heatmap(inv(Matrix(capMatrix)), yflip = true, title = "Inverse capacitance matrix"))
 laplacian = spdiagm(0 => fill(-2.0, N), -1 => fill(1.0, N-1), 1 => fill(1.0, N-1))
 cosTerm = Diagonal(cos.(ϕ_ss))
 massTerm = I
@@ -96,24 +96,49 @@ mat2 = (1/(8*π^2))*Matrix(capMatrix)
 
 vals, vecs = eigen(mat1, mat2)
 display(plot(sqrt.(vals[1:30]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω", title = "Low energy spectrum of JJA"))
-display(plot(x, vecs[:,8], xlims = (-100,100), label = ["n=1" "n=2" "n=3" "n=4" "n=5"], xlabel = "x", ylabel = "ϕ(x)_n", title = "JJA eigenfunctions"))
+
+ns = [1,2,3,4,5,6,7,8,9,10]
+offset = 11.0
+plt = plot(xlims = (-100,100), xlabel= "x", ylabel = "ϕ(x)", title = "JJA eigenfunctions", yticks=false)
+for (i,n) in enumerate(ns)
+    plot!(plt,x,vecs[:,n].+ (i-1)*offset,label="n=$n")
+end
+display(plt)
 
 
-#Allowing for disorder in values of junction energies
-#=
+#Allowing for disorder in values of junction energies THERE ARE BUGS HERE
+
 E_l_sd = 0.02*E_l
-E_l_disordered = Diagonal(fill(E_l, N) .+ E_l_sd*randn(N))
+E_l_disordered = fill(E_l, N-1) .+ E_l_sd*randn(N-1)
 
 E_t_sd = 0.02*E_t
 E_t_disordered = Diagonal(fill(E_t, N) .+ E_t_sd*randn(N))
 
 cosTermDisorder = Diagonal(E_t_disordered).*cosTerm
-laplacianDisorder = Diagonal(E_l_disordered)*laplacian
 
-hamiltonianDisorder = -4.0*e^2*inv(Matrix(capMatrix))*(laplacianDisorder - cosTermDisorder - (1/L_t)*massTerm)
+dl = copy(E_l_disordered)  # sub diagonal of Jacobian
+d  = zeros(N)   # diagonal
+du = copy(E_l_disordered)   # super diagonal
+d[1] = -2*E_l_disordered[1]
+d[N] = -2*E_l_disordered[N-1]
 
-valsDisorder, vecsDisorder = eigen(hamiltonianDisorder)
-display(plot(sqrt.(valsDisorder[1:300]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω", title = "Low energy spectrum for disordered JJA"))
-display(plot(x, vecsDisorder[:,13], xlims = (-50,50), ylims = (-.0001,.0001), label = ["n=1" "n=2" "n=3" "n=4" "n=5"], xlabel = "x", ylabel = "ϕ(x)_n", title = "Disordered JJA eigenfunctions"))
+@inbounds for i in 2:N-1
+    d[i] = -2.0*(E_l_disordered[i-1] + E_l_disordered[i])/2
+end
+laplacianDisorder = Tridiagonal(dl,d,du)
 
-=#
+
+mat1 = Matrix(-laplacianDisorder + cosTermDisorder + (1/L_t)*massTerm)
+mat2 = (1/(8*π^2))*Matrix(capMatrix)
+
+valsDisorder, vecsDisorder = eigen(mat1, mat2)
+
+display(plot(sqrt.(valsDisorder[1:30]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω^2", title = "Low energy spectrum of JJA with Disorder"))
+
+ns = [1,2,3,4,5,6,7,8,9,10]
+offset = 11.0
+plt = plot(xlims = (-100,100), xlabel= "x", ylabel = "ϕ(x)", title = "JJA eigenfunctions with Disorder", yticks=false)
+for (i,n) in enumerate(ns)
+    plot!(plt,x,vecsDisorder[:,n].+ (i-1)*offset,label="n=$n")
+end
+display(plt)
