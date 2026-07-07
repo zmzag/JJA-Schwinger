@@ -127,28 +127,22 @@ let
 end
 
 # ╔═╡ 7d8b28b4-d133-42bf-a420-bb19b6e214d1
-# ╠═╡ disabled = true
-#=╠═╡
-#The phase slip rate is ~e^{-E_J/E_C}.  This shows E_J/E_C = E_l C_l /2e^2 for the series JJs.  To have minimal phase slips we want this value to be around 10-20
+#The phase slip rate is ~e^{-E_J/E_C}.  This shows E_J/E_C = E_l C_l  for the series JJs.  To have minimal phase slips we want this value to be around 10-20
 let
-    c_t_vals = range(0.1, 1.0, length=10)
-    c_l_vals = range(0.1, 100.0, length=1000)
-    series_psl_grid = [e_l_fn(c_t, c_l, K)*c_l/(2*e^2) for c_l in c_l_vals, c_t in c_t_vals]
-    heatmap(c_t_vals, c_l_vals, series_psl_grid, xlabel = "C_t",  ylabel = "C_l", title  = "Series PSR(C_t, C_l) for K=$K")
+    c_t_vals = range(0.001, 0.005, length=1000)
+    c_l_vals = range(0.01, 0.05, length=1000)
+    series_psl_grid = [e_l_fn(c_t, c_l, K)*c_l for c_l in c_l_vals, c_t in c_t_vals]
+    heatmap(c_t_vals, c_l_vals, series_psl_grid, xlabel = "C_t",  ylabel = "C_l", title  = "E_l C_l for K=$K")
 end
-  ╠═╡ =#
 
 # ╔═╡ bcc68721-83f4-42a7-a0f6-2e658905f851
-# ╠═╡ disabled = true
-#=╠═╡
-#This shows E_J/E_C = E_t C_t /2e^2 for the parallel JJs.  To have minimal phase slips we want this value to be around 10-20
+#This shows E_J/E_C = E_t C_tfor the parallel JJs.  To have minimal phase slips we want this value to be around 10-20
 let
-	c_t_vals = range(0.1, 50.0, length = 500)
-	a_vals = range(0.05, 5.0, length=100)
-	parallel_psl_grid = [e_t_fn(a,κ)*c_t/(2e^2) for a in a_vals, c_t in c_t_vals]
-	heatmap(c_t_vals, a_vals, parallel_psl_grid, xlabel = "C_t", ylabel = "a", title = "Parallel PSR(C_t, a) for κ=$κ")
+	c_t_vals = range(0.1, 0.5, length=1000)
+	e_l_vals = range(0.01, 1.0, length=1000)
+	parallel_psl_grid = [e_t_fn(e_l,κ,K)*c_t for e_l in e_l_vals, c_t in c_t_vals]
+	heatmap(c_t_vals, e_l_vals, parallel_psl_grid, xlabel = "C_t", ylabel = "E_t", title = "E_t C_t for κ=$κ")
 end
-  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """

@@ -10,11 +10,11 @@ dx = 0.1
 N = Int(L/dx + 1)
 
 #Physical system variables - import these from JJA_ParametersTesting.jl
-c_t = 0.003; #capacitance of parallel JJs = (h/(2e^2))C in units of 1/GHz
-c_l = 0.03; #capacitance of series JJs = (h/(2e^2))C in units of 1/GHz
-E_t = 0.0003; #energy of parallel JJs = E/h in units of GHz
-L_t = 14000; #inductance of parallel inductor = hL in units of 1/GHz
-E_l = 5.0; #energy of series JJs = E/h in units of GHz
+c_t = 1.0; #capacitance of parallel JJs = (h/(2e^2))C in units of 1/GHz
+c_l = 1.0; #capacitance of series JJs = (h/(2e^2))C in units of 1/GHz
+E_t = 1.3; #energy of parallel JJs = E/h in units of GHz
+L_t = 0.6; #inductance of parallel inductor = hL in units of 1/GHz
+E_l = 1.0; #energy of series JJs = E/h in units of GHz
 
 ω = 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t); #intermediate variabel, unitless
 
@@ -95,7 +95,7 @@ mat1 = Matrix(-E_l*laplacian + E_t*cosTerm + (1/L_t)*massTerm)
 mat2 = (1/(8*π^2))*Matrix(capMatrix)
 
 vals, vecs = eigen(mat1, mat2)
-display(plot(sqrt.(vals[1:30]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω", title = "Low energy spectrum of JJA"))
+display(plot(sqrt.(vals[1:50]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω", title = "Low energy spectrum of JJA"))
 
 ns = [1,2,3,4,5,6,7,8,9,10]
 offset = 11.0
@@ -133,7 +133,7 @@ mat2 = (1/(8*π^2))*Matrix(capMatrix)
 
 valsDisorder, vecsDisorder = eigen(mat1, mat2)
 
-display(plot(sqrt.(valsDisorder[1:30]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω^2", title = "Low energy spectrum of JJA with Disorder"))
+display(plot(sqrt.(valsDisorder[1:50]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω^2", title = "Low energy spectrum of JJA with Disorder"))
 
 ns = [1,2,3,4,5,6,7,8,9,10]
 offset = 11.0
