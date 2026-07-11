@@ -129,8 +129,8 @@ end
 # ╔═╡ 7d8b28b4-d133-42bf-a420-bb19b6e214d1
 #The phase slip rate is ~e^{-E_J/E_C}.  This shows E_J/E_C = E_l C_l  for the series JJs.  To have minimal phase slips we want this value to be around 10-20
 let
-    c_t_vals = range(0.001, 0.005, length=1000)
-    c_l_vals = range(0.01, 0.05, length=1000)
+    c_t_vals = range(0.05, 0.15, length=1000)
+    c_l_vals = range(0.05, 0.15, length=1000)
     series_psl_grid = [e_l_fn(c_t, c_l, K)*c_l for c_l in c_l_vals, c_t in c_t_vals]
     heatmap(c_t_vals, c_l_vals, series_psl_grid, xlabel = "C_t",  ylabel = "C_l", title  = "E_l C_l for K=$K")
 end
@@ -138,10 +138,10 @@ end
 # ╔═╡ bcc68721-83f4-42a7-a0f6-2e658905f851
 #This shows E_J/E_C = E_t C_tfor the parallel JJs.  To have minimal phase slips we want this value to be around 10-20
 let
-	c_t_vals = range(0.1, 0.5, length=1000)
-	e_l_vals = range(0.01, 1.0, length=1000)
+	c_t_vals = range(0.05, 0.15, length=1000)
+	e_l_vals = range(0.1, 0.2, length=1000)
 	parallel_psl_grid = [e_t_fn(e_l,κ,K)*c_t for e_l in e_l_vals, c_t in c_t_vals]
-	heatmap(c_t_vals, e_l_vals, parallel_psl_grid, xlabel = "C_t", ylabel = "E_t", title = "E_t C_t for κ=$κ")
+	heatmap(c_t_vals, e_l_vals, parallel_psl_grid, xlabel = "C_t", ylabel = "E_l", title = "E_t C_t for κ=$κ")
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
