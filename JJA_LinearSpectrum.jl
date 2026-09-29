@@ -5,27 +5,31 @@ using Arpack
 
 #Variables
 #Grid variables
-L = 200
-dx = 0.05
+L = 50 #units of micron
+dx = 0.01 #units of micron
 N = Int(L/dx + 1)
 
+#constants
+hbar = 0.1054571817
+e = 0.1602176634
+
 #Physical system variables - import these from JJA_ParametersTesting.jl
-c_t = 0.003; #capacitance of parallel JJs = (h/(2e^2))C in units of 1/GHz
-c_l = 0.03; #capacitance of series JJs = (h/(2e^2))C in units of 1/GHz
-E_l = 5.0; #energy of series JJs = E/h in units of GHz
-E_t = 0.00004; #energy of parallel JJs = E/h in units of GHz
-L_t = 14000; #inductance of parallel inductor = hL in units of 1/GHz
+c_p = 12; #capacitance of parallel JJs in units of fF
+c_s = 0.03; #capacitance of series JJs in units of fF
+E_s = 0.0001; #energy of series JJs in units of zJ
+E_p = 0.04; #energy of parallel JJs in units of zJ
+L_h = 1; #inductance of parallel inductor in units of nH
 
 
-ω = 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t); #intermediate variabel, unitless
+ω = 1 + c_p/(2*c_s) - sqrt(c_p/c_s + c_p^2/(4*c_s^2)); #intermediate variabel, unitless
 
 #Finds the steady state soliton
-function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ::Function = x -> (x ≥ 0 ? 1.0 : 0.0), tol::Real = 1e-9, maxiter::Integer = 50, verbose::Bool = true)
+function solve_soliton(E_p::Real, E_s::Real, L_h::Real, L::Real, N::Integer; Θ::Function = x -> (x ≥ 0 ? 1.0 : 0.0), tol::Real = 1e-9, maxiter::Integer = 50, verbose::Bool = true)
     
     xrange = range(-L/2, L/2; length=N)
     dx = step(xrange)
-    k = E_t/E_l    # coeff of sine term
-    g0 = 1.0/(E_l*L_t)   # coeff of linear term
+    k = E_p/E_s    # coeff of sine term
+    g0 = (hbar^2/(4*e^2))*(1.0/(E_s*L_h))   # coeff of linear term
     φ_left, φ_right = 0.0, -2*π     #DBC
     
     # initial guess is the SG soliton
@@ -80,20 +84,20 @@ function solve_soliton(E_t::Real, E_l::Real, L_t::Real, L::Real, N::Integer; Θ:
 end
 
 #Generating steady state soliton based on variable values declared above
-x, ϕ_ss = solve_soliton(E_t, E_l, L_t, L, N)
-ϕ_free = @. -4 * atan(exp(sqrt(E_t / E_l) * x))
+x, ϕ_ss = solve_soliton(E_p, E_s, L_h, L, N)
+ϕ_free = @. -4 * atan(exp(sqrt(E_p / E_s) * x))
 #display(plot(x, [ϕ, ϕ_free], label=["ϕ_ss" "SG soliton"]))
 
 #Generating hamiltonian
-capMatrix = spdiagm(0 => fill((c_t + 2*c_l), N), -1 => fill(-c_l, N-1), 1 => fill(-c_l, N-1))
+capMatrix = spdiagm(0 => fill((c_p + 2*c_s), N), -1 => fill(-c_s, N-1), 1 => fill(-c_s, N-1))
 #display(heatmap(capMatrix, yflip = true, title = "Capacitance matrix"))
 display(heatmap(inv(Matrix(capMatrix)), yflip = true, title = "Inverse capacitance matrix"))
 laplacian = spdiagm(0 => fill(-2.0, N), -1 => fill(1.0, N-1), 1 => fill(1.0, N-1))
 cosTerm = Diagonal(cos.(ϕ_ss))
 massTerm = I
 
-mat1 = Matrix(-E_l*laplacian + E_t*cosTerm + (1/L_t)*massTerm)
-mat2 = (1/(8*π^2))*Matrix(capMatrix)
+mat1 = Matrix(-(E_s/hbar)*laplacian + (E_p/hbar)*cosTerm + (hbar/(4*e^2*L_h))*massTerm)
+mat2 = (hbar/(4*e^2))*Matrix(capMatrix)
 
 vals, vecs = eigen(mat1, mat2)
 display(plot(sqrt.(vals[1:50]), marker=:circle, xlabel = "eigenvalue index", ylabel = "ω", title = "Low energy spectrum of JJA"))
@@ -109,27 +113,27 @@ display(plt)
 
 #Allowing for disorder in values of junction energies
 
-E_l_sd = 0.25*E_l
-E_l_disordered = fill(E_l, N-1) .+ E_l_sd*randn(N-1)
+E_s_sd = 0.25*E_s
+E_s_disordered = fill(E_s, N-1) .+ E_s_sd*randn(N-1)
 
-E_t_sd = 0.25*E_t
-E_t_disordered = Diagonal(fill(E_t, N) .+ E_t_sd*randn(N))
+E_p_sd = 0.25*E_p
+E_p_disordered = Diagonal(fill(E_p, N) .+ E_p_sd*randn(N))
 
-cosTermDisorder = Diagonal(E_t_disordered).*cosTerm
+cosTermDisorder = Diagonal(E_p_disordered).*cosTerm
 
-dl = copy(E_l_disordered)  # sub diagonal of Jacobian
+dl = copy(E_s_disordered)  # sub diagonal of Jacobian
 d  = zeros(N)   # diagonal
-du = copy(E_l_disordered)   # super diagonal
-d[1] = -2*E_l_disordered[1]
-d[N] = -2*E_l_disordered[N-1]
+du = copy(E_s_disordered)   # super diagonal
+d[1] = -2*E_s_disordered[1]
+d[N] = -2*E_s_disordered[N-1]
 
 @inbounds for i in 2:N-1
-    d[i] = -2.0*(E_l_disordered[i-1] + E_l_disordered[i])/2
+    d[i] = -2.0*(E_s_disordered[i-1] + E_s_disordered[i])/2
 end
 laplacianDisorder = Tridiagonal(dl,d,du)
 
 
-mat1 = Matrix(-laplacianDisorder + cosTermDisorder + (1/L_t)*massTerm)
+mat1 = Matrix(-laplacianDisorder + cosTermDisorder + (1/L_h)*massTerm)
 mat2 = (1/(8*π^2))*Matrix(capMatrix)
 
 valsDisorder, vecsDisorder = eigen(mat1, mat2)

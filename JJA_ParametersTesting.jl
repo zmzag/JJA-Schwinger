@@ -22,6 +22,9 @@ using Pluto,PlutoUI
 # ╔═╡ efe49bc0-fe17-474c-a64f-2ecb15267656
 using Plots
 
+# ╔═╡ f67ba15f-1931-4689-bbc2-afc246e43e65
+using LaTeXStrings
+
 # ╔═╡ 565cc6ce-db0a-4c07-9914-f757bab5b955
 gr()
 
@@ -34,124 +37,163 @@ The variables $K$, $\kappa$, and $g$ are required to simulate a specific instanc
 K = 4.0 #unitless
 
 # ╔═╡ b541cc58-7c33-42d4-96d6-b2869753d1d9
-@bind κ Slider(0.1:0.05:5.0, default=0.2, show_value=true)
+@bind κ Slider(0.01:0.05:5.0, default=0.2, show_value=true)
 
 # ╔═╡ 248da3b1-8b1b-421f-b479-10c663a04e13
 @bind g Slider(0.1:0.05:5.0, default=1.5, show_value=true)
 
 # ╔═╡ df6641bf-78a0-4adf-8e26-d53507259c43
 md"""
-Throughout this code we take $g$, $\kappa$ in natural units of GHz and GHz$^2$, respectively.  Energies are actually $E/h$ in units of GHz.  Capacitances are actually $\frac{h}{2e^2} C$ in units of 1/GHz.
+Throughout this code we take $g$, $\kappa$ in natural units of $1/s$ and $1/s^2$, respectively.  Energies are in units of zJ.  Capacitances are in units of fF and inductances are in units of nH.  This gives $\hbar$ in units of zJ*ps and e in units of aC.  Our fundamental constants are accordingly given below.
 """
+
+# ╔═╡ 2faffb0a-603a-4b88-9b95-e6f16fae3a24
+hbar = 0.1054571817
+
+# ╔═╡ 4d539c04-4452-478d-b71c-5a587a230876
+e = 0.1602176634
 
 # ╔═╡ 84ec4f6a-6e92-4b9f-a7ff-a113edb4405e
 md"""
-$\omega(C_t, C_l) = 1 + \frac{C_t}{2C_l} - \frac{C_t}{2C_l}\sqrt{1 + \frac{4C_l}{C_t}}$ is an intermediate variable and is unitless.
+$\omega(C_p, C_s) = 1 + \frac{C_p}{2C_s} - \sqrt{\frac{C_p}{C_s} + \frac{C_p^2}{4C_s^2}}$ is an intermediate variable and is unitless.
 """
 
 # ╔═╡ 64b2b9d5-4a42-43c6-a177-4d85bd9ac36d
-function ω_fn(c_t, c_l)
-	return 1 + c_t/(2*c_l) - (c_t/(2*c_l))*sqrt(1 + 4*c_l/c_t)
+function ω_fn(c_p, c_s)
+	return 1 + c_p/(2*c_s) - sqrt(c_p/c_s + c_p^2/(4*c_s^2))
 end
 
 # ╔═╡ 822ebcda-fe80-4fcf-b680-e72a342a51ca
 md"""
-$E_l = \frac{4}{K^2 \pi^2 |\ln \omega| \sqrt{C_t(4C_L + C_t)}}$ is the energy of the series JJ.  It is in units of GHz.
+$E_s(C_p,C_s,K) = \frac{8e^2}{K^2\pi^2} \frac{1}{|\ln \omega| \sqrt{C_p (4C_s + C_p)}}$ is the energy of the series JJ.  It is in units of zJ.
 """
 
 # ╔═╡ c012858a-2ac3-4ded-a5b9-9c483ab192ac
-function e_l_fn(c_t, c_l, K)
-	ω = ω_fn(c_t, c_l)
-	num = 4
-	denom = K^2*π^2*abs(log(ω))*sqrt(c_t*(4*c_l + c_t))
+function e_s_fn(c_p, c_s, K)
+	ω = ω_fn(c_p, c_s)
+	num = 8*e^2
+	denom = K^2*π^2*abs(log(ω))*sqrt(c_p*(4*c_s + c_p))
 	return num/denom
 end
 
 # ╔═╡ e0d93dbb-6819-4814-bd5f-9d6436a7d02f
 md"""
-$L_t = \frac{4*\pi^4*K^2*E_l}{g^2}$ is the inductance of the parallel inductor in units of 1/GHz.
+$L_H = \frac{\pi^2*K^2*E_s}{4*e^2*g^2}$ is the inductance of the parallel inductor in units of nH.
 """
 
 # ╔═╡ 98a17de8-66f2-42e5-92ae-ea4261d40f37
-function l_t_fn(e_l, g, K)
-	num = 4*π^4*K^2*e_l
-	denom = g^2
+function l_h_fn(e_s, g, K)
+	num = π^2*K^2*e_s
+	denom = 4*e^2*g^2
+	return num/denom
+end
+
+# ╔═╡ 2b69aff2-42b2-44fd-8b34-22a2cd761ccd
+md"""
+The inductor energy is given by
+
+$\frac{1}{L} = \frac{\hbar}{4e^2}\frac{1}{L_H}$
+"""
+
+# ╔═╡ 6d2bcaf0-f7e1-4212-bf11-aacee237fd47
+function l_fn(l_h)
+	num = hbar
+	denom = 4*e^2*l_h
 	return num/denom
 end
 
 # ╔═╡ f0a4b8a6-02e3-4786-9cce-1c70e0d2f382
 md"""
-$E_t = \frac{\kappa}{8*\pi^3*K*E_l}$ is the energy of the parallel JJ in units of GHz.
+$E_p = \frac{\hbar^2 \kappa}{2\pi E_s K}$ is the energy of the parallel JJ in units of zJ.
 """
 
 # ╔═╡ 112507eb-c959-4f78-a6e9-485b38e7f485
-function e_t_fn(e_l, κ, K)
-	num = κ
-	denom = 8*π^3*K*e_l 
+function e_p_fn(e_s, κ, K)
+	num = hbar^2*κ
+	denom = 2*π*e_s*K
 	return num/denom 
 end
 
 # ╔═╡ aac014df-1506-4a0c-99f3-b6b39a7247c5
 md"""
-From https://arxiv.org/pdf/2603.06371, the equivalent to $(h/2e^2)*C_l$ is 1/(30 GHz) ~ 0.03 1/GHz and the eqivalent to $(h/2e^2)*C_l$ is 1/(500 GHz) ~ 0.002 1/GHz.  Therefore we let the ranges of these values go from 0.001 to 0.1 (1/GHz).
+Average capacitances/area for the experiment are on the order of 50fF/micron^2.  Given possible micron distances in [100nm^2,9$\mu$m^2], this gives us possible capaictances in the range from $C \in [.005,450] fF$.  Given this I slightly extend the range to .001 to 500 for both capacitances to see the full range.
 """
 
 # ╔═╡ 0cdffd0c-7f01-4708-8f57-e9991e61cdb4
-#Generates heatmap of possible E_l values for different C_l, C_t at a given K
+# Generates heatmap of possible E_s values for different C_p, C_s at a given K
 let
-    c_t_vals = range(0.001, 0.005, length=1000)
-    c_l_vals = range(0.01, 0.05, length=1000)
-    e_l_grid = [e_l_fn(c_t, c_l, K) for c_t in c_t_vals, c_l in c_l_vals]
-    heatmap(c_t_vals, c_l_vals, e_l_grid, xlabel = "C_t",  ylabel = "C_l", title  = "E_l(C_t, C_l) for K=$K")
+    c_p_vals = exp10.(range(log10(0.001), log10(500), length=1000))
+    c_s_vals = exp10.(range(log10(0.001), log10(500), length=1000))
+    e_s_grid = [e_s_fn(c_p, c_s, K) for c_s in c_s_vals, c_p in c_p_vals]
+
+    log_grid = map(e -> e > 0 ? log10(e) : NaN, e_s_grid)
+
+    tick_vals  = filter(t -> 0.001 <= t <= 500,
+                    [round(m * 10.0^p, sigdigits=3) for p in -3:2 for m in (1, 5)])
+    tick_label(t) = t >= 1 ? string(round(Int, t)) : string(t)
+    ticks = (tick_vals, tick_label.(tick_vals))
+
+    heatmap(c_p_vals, c_s_vals, log_grid,
+            xscale = :log10, yscale = :log10,
+            xticks = ticks, yticks = ticks,
+            xlabel = "C_p", ylabel = "C_s",
+            colorbar_title = "log_10 E_s",
+            size = (700, 600),
+            title = "E_s(C_p, C_s) for K=$K")
+end
+
+# ╔═╡ 72044b15-4954-40c7-a0cf-663e49c13b30
+# Log-axis ticks at mults × 10^p covering [lo, hi]; only powers of 10 are labeled
+function log_ticks(lo, hi; mults=1:9)
+    lo_tol, hi_tol = lo * (1 - 1e-9), hi * (1 + 1e-9)   # keep endpoint ticks despite float error
+    mp = [(m, p) for p in floor(Int, log10(lo)):ceil(Int, log10(hi)) for m in mults]
+    filter!(((m, p),) -> lo_tol <= m * 10.0^p <= hi_tol, mp)
+    vals   = [round(m * 10.0^p, sigdigits=3) for (m, p) in mp]
+    labels = [m == 1 ? L"10^{%$p}" : "" for (m, p) in mp]
+    return (vals, labels)
 end
 
 # ╔═╡ 6be4f3a2-94a9-48ec-b85d-6bf8d5d047d1
 md"""
-Those choices for the capacitances seem to put $E_l$ in the range of ~5 GHz so we look around that at what $L_t$ should be in order to give the chosen $g$.
+Those choices for the capacitances seem to put $E_s$ in the range of .1-.000001 zJ so we look around that at what $L_H$ should be in order to give the chosen $g$.
 """
 
 # ╔═╡ 4472e33c-b08b-4b6d-98f1-d10b2ae21da7
-#Generates a plot of L_t as a function of E_l which gives the correct g and at a given K
+# Generates a plot of L_H as a function of E_s which gives the correct g and at a given K
 let
-	e_l_vals = range(1.0, 10.0, length=100)
-	l_t_grid = [l_t_fn(e_l, g, K) for e_l in e_l_vals]
-	plot(e_l_vals, l_t_grid, xlabel = "E_l", ylabel = "L_t", title = "L_t(E_l) for g=$g, K=$K")
+	e_s_vals = exp10.(range(log10(0.000001), log10(0.1), length=1000))
+	l_h_grid = [l_h_fn(e_s, g, K) for e_s in e_s_vals]
+	y_lo, y_hi = extrema(filter(y -> y > 0 && isfinite(y), l_h_grid))
+	plot(e_s_vals, l_h_grid,
+	     xscale = :log10, yscale = :log10,
+	     xticks = log_ticks(1e-6, 0.1), yticks = log_ticks(y_lo, y_hi),
+	     xlabel = "E_s", ylabel = "L_H",
+	     title = "L_H(E_s) for g=$g, K=$K", legend = false)
 end
 
 # ╔═╡ bd5b2dd1-17eb-40ed-8ef1-9b96a9eecd6f
-#Generates a plot of E_t as a function of E_l which gives the correct κ and at a given K
+# Generates a plot of E_p as a function of E_s which gives the correct κ and at a given K
 let
-	e_l_vals = range(1.0, 10.0, length=100)
-	e_t_grid = [e_t_fn(e_l, κ, K) for e_l in e_l_vals]
-	plot(e_l_vals, e_t_grid, xlabel = "E_l", ylabel = "E_t", title = "E_t(E_l) for κ=$κ, K=$K")
-end
-
-# ╔═╡ 7d8b28b4-d133-42bf-a420-bb19b6e214d1
-#The phase slip rate is ~e^{-E_J/E_C}.  This shows E_J/E_C = E_l C_l  for the series JJs.  To have minimal phase slips we want this value to be around 10-20
-let
-    c_t_vals = range(0.05, 0.15, length=1000)
-    c_l_vals = range(0.05, 0.15, length=1000)
-    series_psl_grid = [e_l_fn(c_t, c_l, K)*c_l for c_l in c_l_vals, c_t in c_t_vals]
-    heatmap(c_t_vals, c_l_vals, series_psl_grid, xlabel = "C_t",  ylabel = "C_l", title  = "E_l C_l for K=$K")
-end
-
-# ╔═╡ bcc68721-83f4-42a7-a0f6-2e658905f851
-#This shows E_J/E_C = E_t C_tfor the parallel JJs.  To have minimal phase slips we want this value to be around 10-20
-let
-	c_t_vals = range(0.05, 0.15, length=1000)
-	e_l_vals = range(0.1, 0.2, length=1000)
-	parallel_psl_grid = [e_t_fn(e_l,κ,K)*c_t for e_l in e_l_vals, c_t in c_t_vals]
-	heatmap(c_t_vals, e_l_vals, parallel_psl_grid, xlabel = "C_t", ylabel = "E_l", title = "E_t C_t for κ=$κ")
+	e_s_vals = exp10.(range(log10(0.000001), log10(0.1), length=1000))
+	e_p_grid = [e_p_fn(e_s, κ, K) for e_s in e_s_vals]
+	y_lo, y_hi = extrema(filter(y -> y > 0 && isfinite(y), e_p_grid))
+	plot(e_s_vals, e_p_grid,
+	     xscale = :log10, yscale = :log10,
+	     xticks = log_ticks(1e-6, 0.1), yticks = log_ticks(y_lo, y_hi),
+	     xlabel = "E_s", ylabel = "E_p",
+	     title = "E_p(E_s) for κ=$κ, K=$K", legend = false)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
+LaTeXStrings = "~1.4.0"
 Plots = "~1.41.6"
 Pluto = "~1.0.1"
 PlutoUI = "~0.7.83"
@@ -163,7 +205,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "9fd5f0ef88b8b4bf896d1b3dbf9d86c17c4d5c69"
+project_hash = "0e14ffc1fcf3f612ceda631823b7659604b64be3"
 
 [[deps.AbstractPlutoDingetjes]]
 git-tree-sha1 = "6c3913f4e9bdf6ba3c08041a446fb1332716cbc2"
@@ -1427,26 +1469,30 @@ version = "1.13.0+0"
 # ╔═╡ Cell order:
 # ╠═af6fc96a-e4d3-4c57-87ed-657fb004710b
 # ╠═efe49bc0-fe17-474c-a64f-2ecb15267656
+# ╠═f67ba15f-1931-4689-bbc2-afc246e43e65
 # ╠═565cc6ce-db0a-4c07-9914-f757bab5b955
 # ╠═b8549d64-ebcb-4ae9-a01e-fe8d55e8701f
 # ╠═57414233-2fad-43dd-964f-3f8b44226ecb
 # ╠═b541cc58-7c33-42d4-96d6-b2869753d1d9
 # ╠═248da3b1-8b1b-421f-b479-10c663a04e13
 # ╠═df6641bf-78a0-4adf-8e26-d53507259c43
+# ╠═2faffb0a-603a-4b88-9b95-e6f16fae3a24
+# ╠═4d539c04-4452-478d-b71c-5a587a230876
 # ╠═84ec4f6a-6e92-4b9f-a7ff-a113edb4405e
 # ╠═64b2b9d5-4a42-43c6-a177-4d85bd9ac36d
 # ╠═822ebcda-fe80-4fcf-b680-e72a342a51ca
 # ╠═c012858a-2ac3-4ded-a5b9-9c483ab192ac
 # ╠═e0d93dbb-6819-4814-bd5f-9d6436a7d02f
 # ╠═98a17de8-66f2-42e5-92ae-ea4261d40f37
+# ╠═2b69aff2-42b2-44fd-8b34-22a2cd761ccd
+# ╠═6d2bcaf0-f7e1-4212-bf11-aacee237fd47
 # ╠═f0a4b8a6-02e3-4786-9cce-1c70e0d2f382
 # ╠═112507eb-c959-4f78-a6e9-485b38e7f485
 # ╠═aac014df-1506-4a0c-99f3-b6b39a7247c5
 # ╠═0cdffd0c-7f01-4708-8f57-e9991e61cdb4
+# ╠═72044b15-4954-40c7-a0cf-663e49c13b30
 # ╠═6be4f3a2-94a9-48ec-b85d-6bf8d5d047d1
 # ╠═4472e33c-b08b-4b6d-98f1-d10b2ae21da7
 # ╠═bd5b2dd1-17eb-40ed-8ef1-9b96a9eecd6f
-# ╠═7d8b28b4-d133-42bf-a420-bb19b6e214d1
-# ╠═bcc68721-83f4-42a7-a0f6-2e658905f851
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
