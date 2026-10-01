@@ -78,7 +78,7 @@ function solve_soliton(E_p::Real, E_s::Real, L_h::Real, L::Real, N::Integer; Θ:
             return xrange, φ
         end
         J = jacobian!(dl, d, du, φ)
-        Δφ = J\(-F) #left division, computes -F = Δϕ J
+        Δφ = J\(-F) #left division, computes -F = J Δϕ
         φ .+= Δφ
     end
     
@@ -166,7 +166,7 @@ function solve_soliton_disorder(E_p_disordered, E_s_disordered, L_h::Real, L::Re
             return xrange, φ
         end
         J = jacobian!(dl, d, du, φ)
-        Δφ = J\(-F) #left division, computes -F = Δϕ J
+        Δφ = J\(-F) #left division, computes -F = J Δϕ
         φ .+= Δφ
     end
     

@@ -30,7 +30,7 @@ gr()
 
 # ╔═╡ b8549d64-ebcb-4ae9-a01e-fe8d55e8701f
 md"""
-The variables $K$, $\kappa$, and $g$ are required to simulate a specific instance of the continuum model ($K=4$ => Schwinger model, $\kappa$ => fermion mass, $g$ => boson mass).  Here we set $K = 4$ - which is unitless.  $g$ and $\kappa$ are set by sliders.  A good analog simulation should be able to simulate both $\kappa \ll g$ - which we can access perturbatively and use to benchmark the simulator, and $\kappa \sim g$ - which is the region inaccessible by analytics.
+The variables $K$, $\kappa$, and $g$ are required to simulate a specific instance of the continuum model ($K=4$ => Schwinger model, $\kappa$ => fermion mass, $g$ => boson mass).  Here we set $K = 4$ - which is unitless.  $g$ and $\kappa$ are set by sliders.  A good analog simulation should be able to simulate both $\sqrt{\kappa} \ll g$ - which we can access perturbatively and use to benchmark the simulator, and $\kappa \sim g$ - which is the region inaccessible by analytics.
 """
 
 # ╔═╡ 57414233-2fad-43dd-964f-3f8b44226ecb
@@ -65,7 +65,7 @@ end
 
 # ╔═╡ 822ebcda-fe80-4fcf-b680-e72a342a51ca
 md"""
-$E_s(C_p,C_s,K) = \frac{4e^2}{\pi^2 K^2 C_p}$ is the energy of the series JJ.  It is in units of zJ.
+$E_s(C_p,K) = \frac{4e^2}{\pi^2 K^2 C_p}$ is the energy of the series JJ.  It is in units of zJ.
 """
 
 # ╔═╡ c012858a-2ac3-4ded-a5b9-9c483ab192ac
@@ -130,14 +130,14 @@ function log_ticks(lo, hi; mults=1:9)
 end
 
 # ╔═╡ 0cdffd0c-7f01-4708-8f57-e9991e61cdb4
-# Generates heatmap of possible E_s values for different C_p, C_s at a given K
+# Generates plot of possible E_s values for different C_p, C_s at a given K
 let
     c_p_vals = exp10.(range(log10(0.1), log10(5000), length=1000))
     e_s_grid = [e_s_fn(c_p, K) for c_p in c_p_vals]
     y_lo, y_hi = extrema(filter(y -> y > 0 && isfinite(y), e_s_grid))
 	plot(c_p_vals, e_s_grid,
 	     xscale = :log10, yscale = :log10,
-	     xticks = log_ticks(1e-6, 0.1), yticks = log_ticks(y_lo, y_hi),
+	     xticks = log_ticks(0.1, 5000), yticks = log_ticks(y_lo, y_hi),
 	     xlabel = "C_p", ylabel = "E_s",
 	     title = "E_s(C_p) for K=$K", legend = false)
 end
