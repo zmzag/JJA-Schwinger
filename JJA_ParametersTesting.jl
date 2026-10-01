@@ -44,7 +44,7 @@ K = 4.0 #unitless
 
 # ╔═╡ df6641bf-78a0-4adf-8e26-d53507259c43
 md"""
-Throughout this code we take $g$, $\kappa$ in natural units of $1/s$ and $1/s^2$, respectively.  Energies are in units of zJ.  Capacitances are in units of fF and inductances are in units of nH.  This gives $\hbar$ in units of zJ*ps and e in units of aC.  Our fundamental constants are accordingly given below.
+Throughout this code we take $g$, $\kappa$ in natural units of $1/ps$ and $1/ps^2$, respectively.  Energies are in units of zJ.  Capacitances are in units of fF and inductances are in units of nH.  This gives $\hbar$ in units of zJ*ps and e in units of aC.  Our fundamental constants are accordingly given below.
 """
 
 # ╔═╡ 2faffb0a-603a-4b88-9b95-e6f16fae3a24
@@ -92,12 +92,12 @@ end
 md"""
 The inductor energy is given by
 
-$\frac{1}{L} = \frac{\hbar}{4e^2}\frac{1}{L_H}$
+$\frac{1}{L} = \frac{\hbar^2}{4e^2}\frac{1}{L_H}$
 """
 
 # ╔═╡ 6d2bcaf0-f7e1-4212-bf11-aacee237fd47
 function l_fn(l_h)
-	num = hbar
+	num = hbar^2
 	denom = 4*e^2*l_h
 	return num/denom
 end
@@ -122,8 +122,8 @@ Average capacitances/area for the experiment are on the order of 50fF/micron^2. 
 # ╔═╡ 0cdffd0c-7f01-4708-8f57-e9991e61cdb4
 # Generates heatmap of possible E_s values for different C_p, C_s at a given K
 let
-    c_p_vals = exp10.(range(log10(0.001), log10(500), length=1000))
-    c_s_vals = exp10.(range(log10(0.001), log10(500), length=1000))
+    c_p_vals = exp10.(range(log10(0.1), log10(5000), length=1000))
+    c_s_vals = exp10.(range(log10(0.1), log10(5000), length=1000))
     e_s_grid = [e_s_fn(c_p, c_s, K) for c_s in c_s_vals, c_p in c_p_vals]
 
     log_grid = map(e -> e > 0 ? log10(e) : NaN, e_s_grid)

@@ -6,7 +6,7 @@ using Arpack
 #Variables
 #Grid variables
 L = 50 #units of micron
-dx = 0.01 #units of micron
+dx = 0.1 #units of micron
 N = Int(L/dx + 1)
 
 #constants
@@ -59,7 +59,7 @@ function solve_soliton(E_p::Real, E_s::Real, L_h::Real, L::Real, N::Integer; Θ:
         @inbounds for i in 2:N-1
             d[i] = -2.0 - k * cos(φ[i]) - g0
             dl[i-1] = 1.0 
-            du[i-1] = 1.0 
+            du[i] = 1.0 
         end
         return Tridiagonal(dl, d, du)
     end
@@ -110,13 +110,47 @@ for (i,n) in enumerate(ns)
 end
 display(plt)
 
+#Checking validity of continuum approximation
+c_p = 1.0
+c_s = 1.0
+ω = 1 + c_p/(2*c_s) - sqrt(c_p/c_s + c_p^2/(4*c_s^2))
+A_lattice = 1/c_p
+A_limit = 2/(abs(log(ω))*sqrt(c_p*(4*c_s + c_p)))
+capMatrix = spdiagm(0 => fill((c_p + 2*c_s), N), -1 => fill(-c_s, N-1), 1 => fill(-c_s, N-1))
+Cinv = inv(Matrix(capMatrix))
+rowSums = vec(sum(Cinv, dims=2))          # rowSums[i] = sum over j of Cinv[i, j]
+
+plt = scatter(1:N, rowSums;
+              label  = "exact C^-1",
+              xlabel = "row index",
+              ylabel = "C^(-1)",
+              title  = "C_p = $(c_p),  C_s = $(c_s)",
+              markersize = 2, markerstrokewidth = 0)
+hline!(plt, [A_lattice]; label = "1/c_p", ls = :dash, lw = 2)
+hline!(plt, [A_limit];   label = "2/(|ln ω| sqrt(c_p(4c_s+c_p)))", ls = :dot, lw = 2)
+display(plt)
+
+# zoom on the first rows, where the end of the array shows up
+nEnd = min(N, 40)
+pltEnd = scatter(1:nEnd, rowSums[1:nEnd];
+                 label  = "exact C^-1",
+                 xlabel = "row index",
+                 ylabel = "C^(-1)",
+                 title  = "C_p = $(c_p),  C_s = $(c_s) (boundary rows)",
+                 markersize = 2, markerstrokewidth = 0)
+hline!(pltEnd, [A_lattice]; label = "1/c_p", ls = :dash, lw = 2)
+hline!(pltEnd, [A_limit];   label = "2/(|ln ω| sqrt(c_p(4c_s+c_p)))", ls = :dot, lw = 2)
+display(pltEnd)
+
+
+
 
 #Allowing for disorder in values of junction energies
 
-E_s_sd = 0.25*E_s
+E_s_sd = 0.02*E_s
 E_s_disordered = fill(E_s, N-1) .+ E_s_sd*randn(N-1)
 
-E_p_sd = 0.25*E_p
+E_p_sd = 0.02*E_p
 E_p_disordered = Diagonal(fill(E_p, N) .+ E_p_sd*randn(N))
 
 cosTermDisorder = Diagonal(E_p_disordered).*cosTerm
@@ -133,8 +167,8 @@ end
 laplacianDisorder = Tridiagonal(dl,d,du)
 
 
-mat1 = Matrix(-laplacianDisorder + cosTermDisorder + (1/L_h)*massTerm)
-mat2 = (1/(8*π^2))*Matrix(capMatrix)
+mat1 = Matrix(-(1/hbar)*laplacianDisorder + (1/hbar)*cosTermDisorder + (hbar/(4*e^2*L_h))*massTerm)
+mat2 = (hbar/(4*e^2))*Matrix(capMatrix)
 
 valsDisorder, vecsDisorder = eigen(mat1, mat2)
 
