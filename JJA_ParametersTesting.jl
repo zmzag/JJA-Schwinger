@@ -65,14 +65,13 @@ end
 
 # ╔═╡ 822ebcda-fe80-4fcf-b680-e72a342a51ca
 md"""
-$E_s(C_p,C_s,K) = \frac{8e^2}{K^2\pi^2} \frac{1}{|\ln \omega| \sqrt{C_p (4C_s + C_p)}}$ is the energy of the series JJ.  It is in units of zJ.
+$E_s(C_p,C_s,K) = \frac{4e^2}{\pi^2 K^2 C_p}$ is the energy of the series JJ.  It is in units of zJ.
 """
 
 # ╔═╡ c012858a-2ac3-4ded-a5b9-9c483ab192ac
-function e_s_fn(c_p, c_s, K)
-	ω = ω_fn(c_p, c_s)
-	num = 8*e^2
-	denom = K^2*π^2*abs(log(ω))*sqrt(c_p*(4*c_s + c_p))
+function e_s_fn(c_p, K)
+	num = 4*e^2
+	denom = π^2*K^2*c_p
 	return num/denom
 end
 
@@ -119,29 +118,6 @@ md"""
 Average capacitances/area for the experiment are on the order of 50fF/micron^2.  Given possible micron distances in [100nm^2,9$\mu$m^2], this gives us possible capaictances in the range from $C \in [.005,450] fF$.  Given this I slightly extend the range to .001 to 500 for both capacitances to see the full range.
 """
 
-# ╔═╡ 0cdffd0c-7f01-4708-8f57-e9991e61cdb4
-# Generates heatmap of possible E_s values for different C_p, C_s at a given K
-let
-    c_p_vals = exp10.(range(log10(0.1), log10(5000), length=1000))
-    c_s_vals = exp10.(range(log10(0.1), log10(5000), length=1000))
-    e_s_grid = [e_s_fn(c_p, c_s, K) for c_s in c_s_vals, c_p in c_p_vals]
-
-    log_grid = map(e -> e > 0 ? log10(e) : NaN, e_s_grid)
-
-    tick_vals  = filter(t -> 0.001 <= t <= 500,
-                    [round(m * 10.0^p, sigdigits=3) for p in -3:2 for m in (1, 5)])
-    tick_label(t) = t >= 1 ? string(round(Int, t)) : string(t)
-    ticks = (tick_vals, tick_label.(tick_vals))
-
-    heatmap(c_p_vals, c_s_vals, log_grid,
-            xscale = :log10, yscale = :log10,
-            xticks = ticks, yticks = ticks,
-            xlabel = "C_p", ylabel = "C_s",
-            colorbar_title = "log_10 E_s",
-            size = (700, 600),
-            title = "E_s(C_p, C_s) for K=$K")
-end
-
 # ╔═╡ 72044b15-4954-40c7-a0cf-663e49c13b30
 # Log-axis ticks at mults × 10^p covering [lo, hi]; only powers of 10 are labeled
 function log_ticks(lo, hi; mults=1:9)
@@ -151,6 +127,19 @@ function log_ticks(lo, hi; mults=1:9)
     vals   = [round(m * 10.0^p, sigdigits=3) for (m, p) in mp]
     labels = [m == 1 ? L"10^{%$p}" : "" for (m, p) in mp]
     return (vals, labels)
+end
+
+# ╔═╡ 0cdffd0c-7f01-4708-8f57-e9991e61cdb4
+# Generates heatmap of possible E_s values for different C_p, C_s at a given K
+let
+    c_p_vals = exp10.(range(log10(0.1), log10(5000), length=1000))
+    e_s_grid = [e_s_fn(c_p, K) for c_p in c_p_vals]
+    y_lo, y_hi = extrema(filter(y -> y > 0 && isfinite(y), e_s_grid))
+	plot(c_p_vals, e_s_grid,
+	     xscale = :log10, yscale = :log10,
+	     xticks = log_ticks(1e-6, 0.1), yticks = log_ticks(y_lo, y_hi),
+	     xlabel = "C_p", ylabel = "E_s",
+	     title = "E_s(C_p) for K=$K", legend = false)
 end
 
 # ╔═╡ 6be4f3a2-94a9-48ec-b85d-6bf8d5d047d1
@@ -1489,8 +1478,8 @@ version = "1.13.0+0"
 # ╠═f0a4b8a6-02e3-4786-9cce-1c70e0d2f382
 # ╠═112507eb-c959-4f78-a6e9-485b38e7f485
 # ╠═aac014df-1506-4a0c-99f3-b6b39a7247c5
-# ╠═0cdffd0c-7f01-4708-8f57-e9991e61cdb4
 # ╠═72044b15-4954-40c7-a0cf-663e49c13b30
+# ╠═0cdffd0c-7f01-4708-8f57-e9991e61cdb4
 # ╠═6be4f3a2-94a9-48ec-b85d-6bf8d5d047d1
 # ╠═4472e33c-b08b-4b6d-98f1-d10b2ae21da7
 # ╠═bd5b2dd1-17eb-40ed-8ef1-9b96a9eecd6f
